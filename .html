@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DASHBOARD DIARIO DPW/CACHOEIRO</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+body { margin:0; font-family:Segoe UI,sans-serif; background:#f3f4f6; }
+header { background:#000; color:#fff; text-align:center; padding:12px; font-size:22px; font-weight:bold; }
+.tabs { display:flex; background:#111827; }
+.tabs button { flex:1; padding:10px; border:none; background:none; color:#fff; cursor:pointer; }
+.tabs button.active { background:#1f2937; }
+.container { padding:20px; }
+.filtros { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
+select,input { padding:6px; }
+.kpi-container { display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-bottom:25px; }
+.kpi { color:white; padding:20px; border-radius:10px; text-align:center; }
+.kpi h3{margin:0;font-size:14px;} .kpi span{font-size:26px;font-weight:bold;display:block;margin-top:8px;}
+.blue{background:#2563eb;} .red{background:#dc2626;} .orange{background:#f59e0b;} .green{background:#15803d;}
+.purple{background:#7c3aed;} .teal{background:#0d9488;} .pink{background:#be185d;} .gray{background:#4b5563;}
+.grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(350px,1fr)); gap:20px; }
+.chart-card { background:#fff; padding:20px 20px 25px 20px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08); height:420px; display:flex; flex-direction:column; }
+.chart-card canvas{flex:1;}
+.chart-card h4{margin-bottom:10px;}
+.card{background:#fff; padding:15px; border-radius:6px; box-shadow:0 4px 10px rgba(0,0,0,0.1); margin-bottom:20px;}
+button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:pointer; border-radius:4px; margin-top:5px;}
+.btn-group{display:flex;gap:15px;margin-top:20px;flex-wrap:wrap;}
+.btn-primary{background:linear-gradient(135deg,#111827,#1f2937);color:#fff;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;transition:0.2s;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,0.15);}
+.btn-secondary{background:#e5e7eb;color:#111827;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;transition:0.2s;}
+.btn-secondary:hover{background:#d1d5db;}
+.lancamento-card{background:#fff;padding:40px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.08);max-width:1100px;margin:30px auto;}
+.lancamento-card h2{margin-bottom:25px;color:#111827;}
+.form-grid{display:grid;grid-template-columns: repeat(auto-fit,minmax(220px,1fr));gap:20px;}
+.campo{display:flex;flex-direction:column;}
+.campo label{font-weight:600;margin-bottom:6px;color:#374151;}
+.campo input,.campo select{padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;transition:0.2s;}
+.campo input:focus,.campo select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.15);}
+.btn-danger{background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;transition:0.2s;}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(220,38,38,0.3);}
+</style>
+</head>
+
+<body>
+
+<header>DASHBOARD DIARIO DPW/CACHOEIRO</header>
+
+<div class="tabs">
+<button class="active" onclick="trocarAba('dashboard',this)">Dashboard</button>
+<button onclick="trocarAba('input',this)">Lançamento</button>
+</div>
+
+<div class="container">
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+<div class="filtros">
+<select onchange="filtrarTurno(this.value)">
+<option value="TODOS">Todos Turnos</option>
+<option value="A">Turno A</option>
+<option value="B">Turno B</option>
+<option value="C">Turno C</option>
+<option value="D">Turno D</option>
+</select>
+
+<label>De:</label>
+<input type="date" id="dataInicial">
+<label>Até:</label>
+<input type="date" id="dataFinal">
+<button onclick="atualizar()">Aplicar</button>
+</div>
+
+<div class="kpi-container">
+<div class="kpi blue"><h3><i class="fas fa-truck-loading"></i> Veículos Recebidos</h3><span id="totalVeicRec">0</span></div>
+<div class="kpi red"><h3><i class="fas fa-truck-fast"></i> Veículos Expedidos</h3><span id="totalVeicExp">0</span></div>
+<div class="kpi orange"><h3><i class="fas fa-trailer"></i> Carreta de Bobina</h3><span id="totalCarretas">0</span></div>
+<div class="kpi green"><h3><i class="fas fa-box"></i> Fardos</h3><span id="totalFardos">0</span></div>
+<div class="kpi purple"><h3><i class="fas fa-weight-scale"></i> Tons</h3><span id="totalTons">0</span></div>
+<div class="kpi teal"><h3><i class="fas fa-pallet"></i> Paletes</h3><span id="totalPaletes">0</span></div>
+<div class="kpi pink"><h3><i class="fas fa-rotate"></i> Fardos Retrabalhados</h3><span id="totalFardosRet">0</span></div>
+<div class="kpi gray"><h3><i class="fas fa-industry"></i> Prensa</h3><span id="totalPrensa">0</span></div>
+</div>
+
+<div class="grid">
+<div class="chart-card"><h4><i class="fas fa-truck-loading"></i> Veículos Recebidos</h4><canvas id="recChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-truck-fast"></i> Veículos Expedidos</h4><canvas id="expChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-trailer"></i> Carreta de Bobina</h4><canvas id="carretasChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-box"></i> Fardos</h4><canvas id="fardosChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-weight-scale"></i> Tons</h4><canvas id="tonsChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-pallet"></i> Paletes</h4><canvas id="paletesChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-rotate"></i> Fardos Retrabalhados</h4><canvas id="fardosRetChart"></canvas></div>
+<div class="chart-card"><h4><i class="fas fa-industry"></i> Prensa</h4><canvas id="prensaChart"></canvas></div>
+</div>
+
+</div>
+
+<!-- LANÇAMENTO -->
+<div id="input" style="display:none;">
+<div class="lancamento-card">
+<h2>📋 Lançamento Diário</h2>
+<div class="form-grid">
+<div class="campo"><label>📅 Data</label><input type="date" id="data"></div>
+<div class="campo"><label>🔄 Turno</label><select id="turno"><option value="A">Turno A</option><option value="B">Turno B</option><option value="C">Turno C</option><option value="D">Turno D</option></select></div>
+<div class="campo"><label>🚛 Veículos Recebidos</label><input type="number" id="veicRec"></div>
+<div class="campo"><label>🚚 Veículos Expedidos</label><input type="number" id="veicExp"></div>
+<div class="campo"><label>🚛 Carretas</label><input type="number" id="carretas"></div>
+<div class="campo"><label>📦 Fardos</label><input type="number" id="fardosMov"></div>
+<div class="campo"><label>⚖️ Tons</label><input type="number" id="tonsRec"></div>
+<div class="campo"><label>🧱 Paletes</label><input type="number" id="paletesRet"></div>
+<div class="campo"><label>🔁 Fardos Retrabalhados</label><input type="number" id="fardosRet"></div>
+<div class="campo"><label>🏭 Prensa</label><input type="number" id="prensa"></div>
+</div>
+
+<div class="btn-group">
+<button class="btn-primary" onclick="adicionar()">💾 Salvar</button>
+<button class="btn-secondary" onclick="atualizar()">🔎 Buscar Dados</button>
+<button class="btn-danger" onclick="apagarTudo()">🗑️ Apagar Tudo</button>
+</div>
+</div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+let senhaSistema = "1234";
+let dados = [];
+let filtroTurno = "TODOS";
+
+function trocarAba(id, botao){
+  if(id==="input"){
+    let senha = prompt("Digite a senha:");
+    if(senha!==senhaSistema){alert("Senha incorreta");return;}
+  }
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("input").style.display="none";
+  document.getElementById(id).style.display="block";
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  botao.classList.add("active");
+}
+
+function filtrarTurno(t){ filtroTurno=t; atualizar(); }
+
+async function adicionar(){
+  let r = {
+    data: data.value,
+    turno: turno.value,
+    veicRec: +veicRec.value||0,
+    veicExp: +veicExp.value||0,
+    carretas: +carretas.value||0,
+    fardosMov: +fardosMov.value||0,
+    tonsRec: +tonsRec.value||0,
+    paletesRet: +paletesRet.value||0,
+    fardosRet: +fardosRet.value||0,
+    prensa: +prensa.value||0
+  };
+  if(!r.data){ alert("Preencha a data"); return; }
+  await salvarTurno(r);
+  alert("Salvo com sucesso no sistema online!");
+}
+
+function criarGrafico(id, cor){
+  return new Chart(document.getElementById(id), {
+    type:"bar",
+    data:{labels:[], datasets:[{data:[], backgroundColor:cor, borderRadius:6, maxBarThickness:55, categoryPercentage:0.75, barPercentage:0.85}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        datalabels:{anchor:"end", align:"end", offset:6, clip:false, clamp:true, color:"#111", font:{weight:"bold", size:12}, formatter:v=>v>0?v.toLocaleString("pt-BR"):""}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{color:"#374151", padding:8}},
+        y:{beginAtZero:true, grace:"20%", grid:{color:"#e5e7eb"}, ticks:{color:"#6b7280", callback:v=>v.toLocaleString("pt-BR")}}
+      }
+    }
+  });
+}
+
+const recChart = criarGrafico("recChart","#2563eb");
+const expChart = criarGrafico("expChart","#dc2626");
+const carretasChart = criarGrafico("carretasChart","#f59e0b");
+const fardosChart = criarGrafico("fardosChart","#15803d");
+const tonsChart = criarGrafico("tonsChart","#7c3aed");
+const paletesChart = criarGrafico("paletesChart","#0d9488");
+const fardosRetChart = criarGrafico("fardosRetChart","#be185d");
+const prensaChart = criarGrafico("prensaChart","#4b5563");
+
+function formatarDataBR(dataISO){
+  if(!dataISO) return "";
+  let p=dataISO.split("-");
+  return `${p[2]}/${p[1]}/${p[0]}`;
+}
+
+function atualizar(){
+  let di=dataInicial.value; let df=dataFinal.value;
+  let filtrado=dados.filter(d=>{
+    let ok=true; if(di&&d.data<di)ok=false; if(df&&d.data>df)ok=false;
+    return ok && (filtroTurno==="TODOS" || d.turno===filtroTurno);
+  });
+  let labels=filtrado.map(d=>formatarDataBR(d.data));
+  function att(chart,campo){ chart.data.labels=labels; chart.data.datasets[0].data=filtrado.map(d=>d[campo]); chart.update(); }
+  att(recChart,"veicRec"); att(expChart,"veicExp"); att(carretasChart,"carretas"); att(fardosChart,"fardosMov");
+  att(tonsChart,"tonsRec"); att(paletesChart,"paletesRet"); att(fardosRetChart,"fardosRet"); att(prensaChart,"prensa");
+  function soma(c){return filtrado.reduce((t,d)=>t+d[c],0);}
+  totalVeicRec.innerText=soma("veicRec").toLocaleString("pt-BR");
+  totalVeicExp.innerText=soma("veicExp").toLocaleString("pt-BR");
+  totalCarretas.innerText=soma("carretas").toLocaleString("pt-BR");
+  totalFardos.innerText=soma("fardosMov").toLocaleString("pt-BR");
+  totalTons.innerText=soma("tonsRec").toLocaleString("pt-BR");
+  totalPaletes.innerText=soma("paletesRet").toLocaleString("pt-BR");
+  totalFardosRet.innerText=soma("fardosRet").toLocaleString("pt-BR");
+  totalPrensa.innerText=soma("prensa").toLocaleString("pt-BR");
+}
+
+atualizar();
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAAjwidHLuh8aTZsFPmOXoqpbD12pTTElI",
+  authDomain: "dashboard-turnos.firebaseapp.com",
+  projectId: "dashboard-turnos",
+  storageBucket: "dashboard-turnos.firebasestorage.app",
+  messagingSenderId: "902554933795",
+  appId: "1:902554933795:web:bf86abf00ed58d569aaf96",
+  measurementId: "G-R0N3S5T6GD"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const turnosRef = collection(db, "lancamentos");
+
+window.salvarTurno = async function(dados){ await addDoc(turnosRef, {...dados, criadoEm: new Date()}); }
+
+const q = query(turnosRef, orderBy("criadoEm", "desc"));
+onSnapshot(q,(snapshot)=>{
+  dados=[];
+  snapshot.forEach(doc=>dados.push({id:doc.id, ...doc.data()}));
+  atualizar();
+});
+
+window.apagarTudo = async function(){
+  if(!confirm("Tem certeza que deseja apagar TODOS os dados?")) return;
+  const snapshot = await getDocs(turnosRef);
+  snapshot.forEach(async(d)=>{ await deleteDoc(doc(db,"lancamentos",d.id)); });
+  alert("Todos os dados foram apagados do sistema online!");
+}
+</script>
+
+</body>
+</html>
