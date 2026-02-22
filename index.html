@@ -7,6 +7,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+	<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -61,6 +62,7 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 <div id="dashboard">
 
 <div class="filtros">
+	<button class="btn-primary" onclick="tirarPrintDashboard()">📸 Tirar Print do Dashboard</button>
 <select onchange="filtrarTurno(this.value)">
 <option value="TODOS">Todos Turnos</option>
 <option value="A">Turno A</option>
@@ -121,6 +123,7 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 <button class="btn-primary" onclick="adicionar()">💾 Salvar</button>
 <button class="btn-secondary" onclick="atualizar()">🔎 Buscar Dados</button>
 <button class="btn-danger" onclick="apagarTudo()">🗑️ Apagar Tudo</button>
+	<button class="btn-danger" onclick="apagarPorDataETurno()">🗑️ Apagar por Data e Turno</button>
 </div>
 </div>
 </div>
@@ -218,12 +221,32 @@ function atualizar(){
   totalPrensa.innerText=soma("prensa").toLocaleString("pt-BR");
 }
 
+function tirarPrintDashboard(){
+  const dashboardElement = document.getElementById('dashboard');
+  html2canvas(dashboardElement, {
+    backgroundColor: '#f3f4f6',
+    scale: 2,
+    logging: false,
+    useCORS: true
+  }).then(canvas => {
+    const link = document.createElement('a');
+    const data = new Date();
+    const dataFormatada = `${data.getDate().toString().padStart(2, '0')}-${(data.getMonth() + 1).toString().padStart(2, '0')}-${data.getFullYear()}_${data.getHours().toString().padStart(2, '0')}-${data.getMinutes().toString().padStart(2, '0')}-${data.getSeconds().toString().padStart(2, '0')}`;
+    link.href = canvas.toDataURL('image/png');
+    link.download = `Dashboard_${dataFormatada}.png`;
+    link.click();
+    alert('Print do dashboard capturado e baixado com sucesso!');
+  }).catch(err => {
+    alert('Erro ao capturar print do dashboard: ' + err);
+  });
+}
+
 atualizar();
 </script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAjwidHLuh8aTZsFPmOXoqpbD12pTTElI",
@@ -249,12 +272,50 @@ onSnapshot(q,(snapshot)=>{
 });
 
 window.apagarTudo = async function(){
-  if(!confirm("Tem certeza que deseja apagar TODOS os dados?")) return;
-  const snapshot = await getDocs(turnosRef);
-  snapshot.forEach(async(d)=>{ await deleteDoc(doc(db,"lancamentos",d.id)); });
-  alert("Todos os dados foram apagados do sistema online!");
-}
+	  if(!confirm("Tem certeza que deseja apagar TODOS os dados?")) return;
+	  const snapshot = await getDocs(turnosRef);
+	  snapshot.forEach(async(d)=>{ await deleteDoc(doc(db,"lancamentos",d.id)); });
+	  alert("Todos os dados foram apagados do sistema online!");
+	}
+
+	window.apagarPorDataETurno = async function(){
+	  let senha = prompt("Digite a senha para apagar por data e turno:");
+	  if(senha !== senhaSistema){ alert("Senha incorreta"); return; }
+
+	  let dataParaApagar = prompt("Digite a data (AAAA-MM-DD) para apagar:");
+	  if(!dataParaApagar){ alert("Data inválida"); return; }
+
+	  let turnoParaApagar = prompt("Digite o turno (A, B, C, D ou TODOS) para apagar:");
+	  if(!turnoParaApagar || !['A', 'B', 'C', 'D', 'TODOS'].includes(turnoParaApagar.toUpperCase())){
+	    alert("Turno inválido. Use A, B, C, D ou TODOS.");
+	    return;
+	  }
+	  turnoParaApagar = turnoParaApagar.toUpperCase();
+
+	  if(!confirm(`Tem certeza que deseja apagar os dados para a data ${dataParaApagar} e turno ${turnoParaApagar}?`)) return;
+
+	  const q = query(turnosRef, where("data", "==", dataParaApagar));
+	  const snapshot = await getDocs(q);
+	  let count = 0;
+	  snapshot.forEach(async(d)=>{
+	    if(turnoParaApagar === "TODOS" || d.data().turno === turnoParaApagar){
+	      await deleteDoc(doc(db,"lancamentos",d.id));
+	      count++;
+	    }
+	  });
+	  alert(`${count} registros para a data ${dataParaApagar} e turno ${turnoParaApagar} foram apagados do sistema online!`);
+	}
 </script>
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
