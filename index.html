@@ -121,9 +121,7 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 
 <div class="btn-group">
 <button class="btn-primary" onclick="adicionar()">💾 Salvar</button>
-<button class="btn-secondary" onclick="atualizar()">🔎 Buscar Dados</button>
-<button class="btn-danger" onclick="apagarTudo()">🗑️ Apagar Tudo</button>
-	<button class="btn-danger" onclick="apagarPorDataETurno()">🗑️ Apagar por Data e Turno</button>
+<button class="btn-danger" onclick="apagarPorDataETurno()">🗑️ Apagar por Data e Turno</button>
 </div>
 </div>
 </div>
@@ -271,14 +269,7 @@ onSnapshot(q,(snapshot)=>{
   atualizar();
 });
 
-window.apagarTudo = async function(){
-	  if(!confirm("Tem certeza que deseja apagar TODOS os dados?")) return;
-	  const snapshot = await getDocs(turnosRef);
-	  snapshot.forEach(async(d)=>{ await deleteDoc(doc(db,"lancamentos",d.id)); });
-	  alert("Todos os dados foram apagados do sistema online!");
-	}
-
-	window.apagarPorDataETurno = async function(){
+window.apagarPorDataETurno = async function(){
 	  let senha = prompt("Digite a senha para apagar por data e turno:");
 	  if(senha !== senhaSistema){ alert("Senha incorreta"); return; }
 
@@ -297,12 +288,15 @@ window.apagarTudo = async function(){
 	  const q = query(turnosRef, where("data", "==", dataParaApagar));
 	  const snapshot = await getDocs(q);
 	  let count = 0;
-	  snapshot.forEach(async(d)=>{
+	  const deletePromises = [];
+	  snapshot.forEach((d)=>{
 	    if(turnoParaApagar === "TODOS" || d.data().turno === turnoParaApagar){
-	      await deleteDoc(doc(db,"lancamentos",d.id));
+	      deletePromises.push(deleteDoc(doc(db,"lancamentos",d.id)));
 	      count++;
 	    }
 	  });
+	  await Promise.all(deletePromises);
+	  atualizar();
 	  alert(`${count} registros para a data ${dataParaApagar} e turno ${turnoParaApagar} foram apagados do sistema online!`);
 	}
 </script>
