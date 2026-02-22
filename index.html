@@ -296,8 +296,15 @@ window.apagarPorDataETurno = async function(){
 	    }
 	  });
 	  await Promise.all(deletePromises);
+	  dados = dados.filter(d => {
+	    if(d.data === dataParaApagar && (turnoParaApagar === "TODOS" || d.turno === turnoParaApagar)){
+	      return false;
+	    }
+	    return true;
+	  });
 	  atualizar();
 	  alert(`${count} registros para a data ${dataParaApagar} e turno ${turnoParaApagar} foram apagados do sistema online!`);
+	  setTimeout(() => { window.location.reload(); }, 1500);
 	}
 </script>
 
