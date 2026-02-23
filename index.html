@@ -7,7 +7,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-	<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -63,6 +64,7 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 
 <div class="filtros">
 	<button class="btn-primary" onclick="tirarPrintDashboard()">📸 Tirar Print do Dashboard</button>
+	<button class="btn-secondary" onclick="exportarExcelMes()">📊 Exportar Excel do Mês</button>
 <select onchange="filtrarTurno(this.value)">
 <option value="TODOS">Todos Turnos</option>
 <option value="A">Turno A</option>
@@ -111,7 +113,7 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 <div class="campo"><label>🔄 Turno</label><select id="turno"><option value="A">Turno A</option><option value="B">Turno B</option><option value="C">Turno C</option><option value="D">Turno D</option></select></div>
 <div class="campo"><label>🚛 Veículos Recebidos</label><input type="number" id="veicRec"></div>
 <div class="campo"><label>🚚 Veículos Expedidos</label><input type="number" id="veicExp"></div>
-<div class="campo"><label>🚛 Carretas</label><input type="number" id="carretas"></div>
+<div class="campo"><label>🚛 Carretas De Bobinas</label><input type="number" id="carretas"></div>
 <div class="campo"><label>📦 Fardos</label><input type="number" id="fardosMov"></div>
 <div class="campo"><label>⚖️ Tons</label><input type="number" id="tonsRec"></div>
 <div class="campo"><label>🧱 Paletes</label><input type="number" id="paletesRet"></div>
@@ -229,7 +231,7 @@ function tirarPrintDashboard(){
   }).then(canvas => {
     const link = document.createElement('a');
     const data = new Date();
-    const dataFormatada = `${data.getDate().toString().padStart(2, '0')}-${(data.getMonth() + 1).toString().padStart(2, '0')}-${data.getFullYear()}_${data.getHours().toString().padStart(2, '0')}-${data.getMinutes().toString().padStart(2, '0')}-${data.getSeconds().toString().padStart(2, '0')}`;
+    const dataFormatada = data.toLocaleDateString('pt-BR').replace(/\//g, '-');
     link.href = canvas.toDataURL('image/png');
     link.download = `Dashboard_${dataFormatada}.png`;
     link.click();
@@ -237,6 +239,47 @@ function tirarPrintDashboard(){
   }).catch(err => {
     alert('Erro ao capturar print do dashboard: ' + err);
   });
+}
+
+window.exportarExcelMes = function(){
+  const agora = new Date();
+  const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
+  const anoAtual = agora.getFullYear();
+  const prefixoMes = anoAtual + '-' + mesAtual;
+  
+  const dadosMes = dados.filter(d => d.data && d.data.startsWith(prefixoMes));
+  
+  if(dadosMes.length === 0){
+    alert('Nenhum dado encontrado para o mês atual (' + mesAtual + '/' + anoAtual + ')');
+    return;
+  }
+  
+  const planilha = [];
+  planilha.push(['Data', 'Turno', 'Veículos Recebidos', 'Veículos Expedidos', 'Carreta de Bobina', 'Fardos', 'Toneladas', 'Paletes', 'Fardos Retrabalhados', 'Prensa']);
+  
+  dadosMes.forEach(registro => {
+    planilha.push([
+      registro.data || '',
+      registro.turno || '',
+      registro.veicRec || 0,
+      registro.veicExp || 0,
+      registro.carretas || 0,
+      registro.fardosMov || 0,
+      registro.tonsRec || 0,
+      registro.paletesRet || 0,
+      registro.fardosRet || 0,
+      registro.prensa || 0
+    ]);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(planilha);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Dados do Mês');
+  
+  const nomeArquivo = 'Dashboard_' + mesAtual + '_' + anoAtual + '.xlsx';
+  XLSX.writeFile(wb, nomeArquivo);
+  
+  alert('Arquivo exportado com sucesso: ' + nomeArquivo);
 }
 
 atualizar();
@@ -280,10 +323,9 @@ onSnapshot(q,(snapshot)=>{
   atualizar();
 });
 
-// 🔥 NOVA FUNÇÃO DE APAGAR
+// 🔥 FUNÇÃO DE APAGAR (CORRIGIDA E ATUALIZADA)
 window.apagarPorDataETurno = async function(){
   try {
-
     let senha = prompt("Digite a senha para apagar:");
     if(senha !== senhaSistema){
       alert("Senha incorreta!");
@@ -323,8 +365,10 @@ window.apagarPorDataETurno = async function(){
     });
 
     await Promise.all(deletePromises);
-
     alert("Registro(s) apagado(s) com sucesso!");
+    
+    // Atualiza o dashboard imediatamente
+    setTimeout(() => { window.location.reload(); }, 1000);
 
   } catch(erro) {
     console.error("Erro ao apagar:", erro);
@@ -335,7 +379,6 @@ window.apagarPorDataETurno = async function(){
 
 </body>
 </html>
-
 
 
 
