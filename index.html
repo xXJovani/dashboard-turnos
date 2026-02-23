@@ -244,7 +244,10 @@ atualizar();
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { 
+  getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
+  deleteDoc, doc, getDocs, where 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAAjwidHLuh8aTZsFPmOXoqpbD12pTTElI",
@@ -260,52 +263,74 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const turnosRef = collection(db, "lancamentos");
 
-window.salvarTurno = async function(dados){ await addDoc(turnosRef, {...dados, criadoEm: new Date()}); }
+window.salvarTurno = async function(dados){
+  await addDoc(turnosRef, {
+    ...dados,
+    criadoEm: new Date()
+  });
+}
 
+// Atualização automática
 const q = query(turnosRef, orderBy("criadoEm", "desc"));
 onSnapshot(q,(snapshot)=>{
   dados=[];
-  snapshot.forEach(doc=>dados.push({id:doc.id, ...doc.data()}));
+  snapshot.forEach(docItem =>
+    dados.push({id:docItem.id, ...docItem.data()})
+  );
   atualizar();
 });
 
+// 🔥 NOVA FUNÇÃO DE APAGAR
 window.apagarPorDataETurno = async function(){
-	  let senha = prompt("Digite a senha para apagar por data e turno:");
-	  if(senha !== senhaSistema){ alert("Senha incorreta"); return; }
+  try {
 
-	  let dataParaApagar = prompt("Digite a data (AAAA-MM-DD) para apagar:");
-	  if(!dataParaApagar){ alert("Data inválida"); return; }
+    let senha = prompt("Digite a senha para apagar:");
+    if(senha !== senhaSistema){
+      alert("Senha incorreta!");
+      return;
+    }
 
-	  let turnoParaApagar = prompt("Digite o turno (A, B, C, D ou TODOS) para apagar:");
-	  if(!turnoParaApagar || !['A', 'B', 'C', 'D', 'TODOS'].includes(turnoParaApagar.toUpperCase())){
-	    alert("Turno inválido. Use A, B, C, D ou TODOS.");
-	    return;
-	  }
-	  turnoParaApagar = turnoParaApagar.toUpperCase();
+    let dataParaApagar = document.getElementById("data").value;
+    let turnoParaApagar = document.getElementById("turno").value;
 
-	  if(!confirm(`Tem certeza que deseja apagar os dados para a data ${dataParaApagar} e turno ${turnoParaApagar}?`)) return;
+    if(!dataParaApagar){
+      alert("Selecione a data antes de apagar.");
+      return;
+    }
 
-	  const q = query(turnosRef, where("data", "==", dataParaApagar));
-	  const snapshot = await getDocs(q);
-	  let count = 0;
-	  const deletePromises = [];
-	  snapshot.forEach((d)=>{
-	    if(turnoParaApagar === "TODOS" || d.data().turno === turnoParaApagar){
-	      deletePromises.push(deleteDoc(doc(db,"lancamentos",d.id)));
-	      count++;
-	    }
-	  });
-	  await Promise.all(deletePromises);
-	  dados = dados.filter(d => {
-	    if(d.data === dataParaApagar && (turnoParaApagar === "TODOS" || d.turno === turnoParaApagar)){
-	      return false;
-	    }
-	    return true;
-	  });
-	  atualizar();
-	  alert(`${count} registros para a data ${dataParaApagar} e turno ${turnoParaApagar} foram apagados do sistema online!`);
-	  setTimeout(() => { window.location.reload(); }, 1500);
-	}
+    if(!confirm(`Confirma exclusão da data ${dataParaApagar} - Turno ${turnoParaApagar}?`)){
+      return;
+    }
+
+    const qDelete = query(
+      turnosRef,
+      where("data", "==", dataParaApagar),
+      where("turno", "==", turnoParaApagar)
+    );
+
+    const snapshot = await getDocs(qDelete);
+
+    if(snapshot.empty){
+      alert("Nenhum registro encontrado para essa data e turno.");
+      return;
+    }
+
+    const deletePromises = [];
+    snapshot.forEach((docSnapshot)=>{
+      deletePromises.push(
+        deleteDoc(doc(db,"lancamentos",docSnapshot.id))
+      );
+    });
+
+    await Promise.all(deletePromises);
+
+    alert("Registro(s) apagado(s) com sucesso!");
+
+  } catch(erro) {
+    console.error("Erro ao apagar:", erro);
+    alert("Erro ao apagar: " + erro.message);
+  }
+}
 </script>
 
 </body>
