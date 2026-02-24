@@ -241,45 +241,50 @@ function tirarPrintDashboard(){
   });
 }
 
-window.exportarExcelMes = function(){
-  const agora = new Date();
-  const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
-  const anoAtual = agora.getFullYear();
-  const prefixoMes = anoAtual + '-' + mesAtual;
-  
-  const dadosMes = dados.filter(d => d.data && d.data.startsWith(prefixoMes));
-  
-  if(dadosMes.length === 0){
-    alert('Nenhum dado encontrado para o mês atual (' + mesAtual + '/' + anoAtual + ')');
-    return;
+function exportarExcelMes(){
+  try {
+    const agora = new Date();
+    const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
+    const anoAtual = agora.getFullYear();
+    const prefixoMes = anoAtual + '-' + mesAtual;
+    
+    const dadosMes = dados.filter(d => d.data && d.data.startsWith(prefixoMes));
+    
+    if(dadosMes.length === 0){
+      alert('Nenhum dado encontrado para o mês atual (' + mesAtual + '/' + anoAtual + ')');
+      return;
+    }
+    
+    const planilha = [];
+    planilha.push(['Data', 'Turno', 'Veículos Recebidos', 'Veículos Expedidos', 'Carreta de Bobina', 'Fardos', 'Toneladas', 'Paletes', 'Fardos Retrabalhados', 'Prensa']);
+    
+    dadosMes.forEach(registro => {
+      planilha.push([
+        registro.data || '',
+        registro.turno || '',
+        registro.veicRec || 0,
+        registro.veicExp || 0,
+        registro.carretas || 0,
+        registro.fardosMov || 0,
+        registro.tonsRec || 0,
+        registro.paletesRet || 0,
+        registro.fardosRet || 0,
+        registro.prensa || 0
+      ]);
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(planilha);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dados do Mês');
+    
+    const nomeArquivo = 'Dashboard_' + mesAtual + '_' + anoAtual + '.xlsx';
+    XLSX.writeFile(wb, nomeArquivo);
+    
+    alert('Arquivo exportado com sucesso: ' + nomeArquivo);
+  } catch(erro) {
+    console.error('Erro ao exportar Excel:', erro);
+    alert('Erro ao exportar Excel: ' + erro.message);
   }
-  
-  const planilha = [];
-  planilha.push(['Data', 'Turno', 'Veículos Recebidos', 'Veículos Expedidos', 'Carreta de Bobina', 'Fardos', 'Toneladas', 'Paletes', 'Fardos Retrabalhados', 'Prensa']);
-  
-  dadosMes.forEach(registro => {
-    planilha.push([
-      registro.data || '',
-      registro.turno || '',
-      registro.veicRec || 0,
-      registro.veicExp || 0,
-      registro.carretas || 0,
-      registro.fardosMov || 0,
-      registro.tonsRec || 0,
-      registro.paletesRet || 0,
-      registro.fardosRet || 0,
-      registro.prensa || 0
-    ]);
-  });
-  
-  const ws = XLSX.utils.aoa_to_sheet(planilha);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Dados do Mês');
-  
-  const nomeArquivo = 'Dashboard_' + mesAtual + '_' + anoAtual + '.xlsx';
-  XLSX.writeFile(wb, nomeArquivo);
-  
-  alert('Arquivo exportado com sucesso: ' + nomeArquivo);
 }
 
 atualizar();
@@ -379,7 +384,6 @@ window.apagarPorDataETurno = async function(){
 
 </body>
 </html>
-
 
 
 
