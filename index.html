@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js" defer></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -243,11 +242,6 @@ function tirarPrintDashboard(){
 
 function exportarExcelMes(){
   try {
-    if(typeof XLSX === 'undefined'){
-      alert('Biblioteca Excel não carregada. Por favor, recarregue a página e tente novamente.');
-      return;
-    }
-    
     const agora = new Date();
     const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
     const anoAtual = agora.getFullYear();
@@ -260,35 +254,31 @@ function exportarExcelMes(){
       return;
     }
     
-    const planilha = [];
-    planilha.push(['Data', 'Turno', 'Veículos Recebidos', 'Veículos Expedidos', 'Carreta de Bobina', 'Fardos', 'Toneladas', 'Paletes', 'Fardos Retrabalhados', 'Prensa']);
+    // Criar CSV em vez de XLSX
+    let csv = 'Data\tTurno\tVeículos Recebidos\tVeículos Expedidos\tCarreta de Bobina\tFardos\tToneladas\tPaletes\tFardos Retrabalhados\tPrensa\n';
     
     dadosMes.forEach(registro => {
-      planilha.push([
-        registro.data || '',
-        registro.turno || '',
-        registro.veicRec || 0,
-        registro.veicExp || 0,
-        registro.carretas || 0,
-        registro.fardosMov || 0,
-        registro.tonsRec || 0,
-        registro.paletesRet || 0,
-        registro.fardosRet || 0,
-        registro.prensa || 0
-      ]);
+      csv += `${registro.data || ''}\t${registro.turno || ''}\t${registro.veicRec || 0}\t${registro.veicExp || 0}\t${registro.carretas || 0}\t${registro.fardosMov || 0}\t${registro.tonsRec || 0}\t${registro.paletesRet || 0}\t${registro.fardosRet || 0}\t${registro.prensa || 0}\n`;
     });
     
-    const ws = XLSX.utils.aoa_to_sheet(planilha);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Dados do Mês');
+    // Converter CSV para XLSX usando blob
+    const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
     
-    const nomeArquivo = 'Dashboard_' + mesAtual + '_' + anoAtual + '.xlsx';
-    XLSX.writeFile(wb, nomeArquivo);
+    const nomeArquivo = 'Dashboard_' + mesAtual + '_' + anoAtual + '.csv';
+    link.setAttribute('href', url);
+    link.setAttribute('download', nomeArquivo);
+    link.style.visibility = 'hidden';
     
-    alert('Arquivo exportado com sucesso: ' + nomeArquivo);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert('Arquivo exportado com sucesso: ' + nomeArquivo + '\n\nNota: O arquivo foi exportado em formato CSV. Você pode abri-lo no Excel normalmente.');
   } catch(erro) {
-    console.error('Erro ao exportar Excel:', erro);
-    alert('Erro ao exportar Excel: ' + erro.message);
+    console.error('Erro ao exportar:', erro);
+    alert('Erro ao exportar: ' + erro.message);
   }
 }
 
