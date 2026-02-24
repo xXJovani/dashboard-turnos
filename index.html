@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js" defer></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -243,6 +243,11 @@ function tirarPrintDashboard(){
 
 function exportarExcelMes(){
   try {
+    if(typeof XLSX === 'undefined'){
+      alert('Biblioteca Excel não carregada. Por favor, recarregue a página e tente novamente.');
+      return;
+    }
+    
     const agora = new Date();
     const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
     const anoAtual = agora.getFullYear();
