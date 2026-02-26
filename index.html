@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DASHBOARD DIARIO DPW/CACHOEIRO</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -18,7 +18,7 @@ header { background:#000; color:#fff; text-align:center; padding:12px; font-size
 .tabs button.active { background:#1f2937; }
 .container { padding:20px; }
 .filtros { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
-select,input { padding:6px; }
+select,input { padding:6px; border-radius: 4px; border: 1px solid #ccc; }
 .kpi-container { display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-bottom:25px; }
 .kpi { color:white; padding:20px; border-radius:10px; text-align:center; }
 .kpi h3{margin:0;font-size:14px;} .kpi span{font-size:26px;font-weight:bold;display:block;margin-top:8px;}
@@ -44,6 +44,7 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 .campo input:focus,.campo select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.15);}
 .btn-danger{background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;transition:0.2s;}
 .btn-danger:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(220,38,38,0.3);}
+.info-badge { background:#e0e7ff; color:#3730a3; padding:8px 12px; border-radius:6px; font-size:12px; font-weight:600; }
 </style>
 </head>
 
@@ -62,8 +63,8 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 <div id="dashboard">
 
 <div class="filtros">
-	<button class="btn-primary" onclick="tirarPrintDashboard()">📸 Tirar Print do Dashboard</button>
-	<button class="btn-secondary" onclick="exportarExcelMes()">📊 Exportar Excel do Mês</button>
+    <button class="btn-primary" onclick="tirarPrintDashboard()">📸 Tirar Print do Dashboard</button>
+    <button class="btn-secondary" onclick="exportarExcelMes()">📊 Exportar Excel do Mês</button>
 <select onchange="filtrarTurno(this.value)">
 <option value="TODOS">Todos Turnos</option>
 <option value="A">Turno A</option>
@@ -76,7 +77,8 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 <input type="date" id="dataInicial">
 <label>Até:</label>
 <input type="date" id="dataFinal">
-<button onclick="atualizar()">Aplicar</button>
+<button class="btn-primary" style="margin-top:0" onclick="atualizar()">Aplicar</button>
+<span class="info-badge" id="infoPeriodo">📊 Exibindo últimos 7 dias</span>
 </div>
 
 <div class="kpi-container">
@@ -134,6 +136,33 @@ let senhaSistema = "1234";
 let dados = [];
 let filtroTurno = "TODOS";
 
+// Carregar dados iniciais
+window.onload = function() {
+    carregarDados();
+    
+    // Configurar datas padrão para os últimos 7 dias
+    const hoje = new Date();
+    const seteDiasAtras = new Date();
+    seteDiasAtras.setDate(hoje.getDate() - 7);
+    
+    document.getElementById("dataFinal").value = hoje.toISOString().split('T')[0];
+    document.getElementById("dataInicial").value = seteDiasAtras.toISOString().split('T')[0];
+    
+    atualizar();
+};
+
+function carregarDados() {
+    // IMPORTANTE: Mantendo a mesma chave 'dados_dashboard_dpw' para não perder os dados salvos
+    const salvos = localStorage.getItem('dados_dashboard_dpw');
+    if (salvos) {
+        dados = JSON.parse(salvos);
+    }
+}
+
+function salvarDados() {
+    localStorage.setItem('dados_dashboard_dpw', JSON.stringify(dados));
+}
+
 function trocarAba(id, botao){
   if(id==="input"){
     let senha = prompt("Digite a senha:");
@@ -150,35 +179,97 @@ function filtrarTurno(t){ filtroTurno=t; atualizar(); }
 
 async function adicionar(){
   let r = {
-    data: data.value,
-    turno: turno.value,
-    veicRec: +veicRec.value||0,
-    veicExp: +veicExp.value||0,
-    carretas: +carretas.value||0,
-    fardosMov: +fardosMov.value||0,
-    tonsRec: +tonsRec.value||0,
-    paletesRet: +paletesRet.value||0,
-    fardosRet: +fardosRet.value||0,
-    prensa: +prensa.value||0
+    data: document.getElementById("data").value,
+    turno: document.getElementById("turno").value,
+    veicRec: +document.getElementById("veicRec").value||0,
+    veicExp: +document.getElementById("veicExp").value||0,
+    carretas: +document.getElementById("carretas").value||0,
+    fardosMov: +document.getElementById("fardosMov").value||0,
+    tonsRec: +document.getElementById("tonsRec").value||0,
+    paletesRet: +document.getElementById("paletesRet").value||0,
+    fardosRet: +document.getElementById("fardosRet").value||0,
+    prensa: +document.getElementById("prensa").value||0
   };
   if(!r.data){ alert("Preencha a data"); return; }
-  await salvarTurno(r);
-  alert("Salvo com sucesso no sistema online!");
+  
+  // Remover se já existir para a mesma data e turno
+  dados = dados.filter(d => !(d.data === r.data && d.turno === r.turno));
+  dados.push(r);
+  
+  // Ordenar por data
+  dados.sort((a,b) => new Date(a.data) - new Date(b.data));
+  
+  salvarDados();
+  atualizar();
+  alert("Salvo com sucesso!");
+}
+
+function apagarPorDataETurno() {
+    let dataApagar = document.getElementById("data").value;
+    let turnoApagar = document.getElementById("turno").value;
+    
+    if (!dataApagar) {
+        alert("Selecione a data que deseja apagar.");
+        return;
+    }
+    
+    if (confirm(`Tem certeza que deseja apagar os dados do dia ${formatarDataBR(dataApagar)} - Turno ${turnoApagar}?`)) {
+        dados = dados.filter(d => !(d.data === dataApagar && d.turno === turnoApagar));
+        salvarDados();
+        atualizar();
+        alert("Dados apagados com sucesso.");
+    }
 }
 
 function criarGrafico(id, cor){
   return new Chart(document.getElementById(id), {
     type:"bar",
-    data:{labels:[], datasets:[{data:[], backgroundColor:cor, borderRadius:6, maxBarThickness:55, categoryPercentage:0.75, barPercentage:0.85}]},
+    data:{labels:[], datasets:[{label:"", data:[], backgroundColor:cor, borderRadius:6, maxBarThickness:55, categoryPercentage:0.75, barPercentage:0.85}]},
     options:{
-      responsive:true, maintainAspectRatio:false,
+      responsive:true, 
+      maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        datalabels:{anchor:"end", align:"end", offset:6, clip:false, clamp:true, color:"#111", font:{weight:"bold", size:12}, formatter:v=>v>0?v.toLocaleString("pt-BR"):""}
+        tooltip:{
+          enabled:true,
+          backgroundColor:'rgba(0,0,0,0.8)',
+          padding:12,
+          displayColors:false,
+          callbacks:{
+            label:function(context){
+              return context.parsed.y.toLocaleString("pt-BR");
+            }
+          }
+        },
+        datalabels:{
+          display:true,
+          color:"#000",
+          font:{weight:"bold", size:10},
+          formatter:function(value){
+            return value > 0 ? value.toLocaleString("pt-BR") : "";
+          },
+          anchor:"end",
+          align:"end",
+          offset:2
+        }
       },
       scales:{
-        x:{grid:{display:false}, ticks:{color:"#374151", padding:8}},
-        y:{beginAtZero:true, grace:"20%", grid:{color:"#e5e7eb"}, ticks:{color:"#6b7280", callback:v=>v.toLocaleString("pt-BR")}}
+        x:{
+          grid:{display:false}, 
+          ticks:{
+            color:"#374151", 
+            padding:8
+          }
+        },
+        y:{
+          beginAtZero:true, 
+          grace:"20%", 
+          grid:{color:"#e5e7eb"}, 
+          ticks:{
+            color:"#6b7280", 
+            callback:v=>v.toLocaleString("pt-BR")
+          }
+        }
       }
     }
   });
@@ -200,180 +291,113 @@ function formatarDataBR(dataISO){
 }
 
 function atualizar(){
-  let di=dataInicial.value; let df=dataFinal.value;
-  let filtrado=dados.filter(d=>{
-    let ok=true; if(di&&d.data<di)ok=false; if(df&&d.data>df)ok=false;
-    return ok && (filtroTurno==="TODOS" || d.turno===filtroTurno);
+  let di=document.getElementById("dataInicial").value; 
+  let df=document.getElementById("dataFinal").value;
+  
+  let filtrado = dados.filter(d => {
+    let ok = true; 
+    if(di && d.data < di) ok = false; 
+    if(df && d.data > df) ok = false;
+    return ok && (filtroTurno === "TODOS" || d.turno === filtroTurno);
   });
-  let labels=filtrado.map(d=>formatarDataBR(d.data));
-  function att(chart,campo){ chart.data.labels=labels; chart.data.datasets[0].data=filtrado.map(d=>d[campo]); chart.update(); }
+  
+  // Agrupar por data
+  let agrupado = {};
+  filtrado.forEach(d => {
+      if(!agrupado[d.data]) {
+          agrupado[d.data] = {
+              data: d.data,
+              veicRec: 0, veicExp: 0, carretas: 0, fardosMov: 0,
+              tonsRec: 0, paletesRet: 0, fardosRet: 0, prensa: 0
+          };
+      }
+      agrupado[d.data].veicRec += d.veicRec;
+      agrupado[d.data].veicExp += d.veicExp;
+      agrupado[d.data].carretas += d.carretas;
+      agrupado[d.data].fardosMov += d.fardosMov;
+      agrupado[d.data].tonsRec += d.tonsRec;
+      agrupado[d.data].paletesRet += d.paletesRet;
+      agrupado[d.data].fardosRet += d.fardosRet;
+      agrupado[d.data].prensa += d.prensa;
+  });
+  
+  let listaAgrupada = Object.values(agrupado).sort((a,b) => new Date(a.data) - new Date(b.data));
+  let labels = listaAgrupada.map(d => formatarDataBR(d.data));
+  
+  function att(chart, campo){ 
+      chart.data.labels = labels; 
+      chart.data.datasets[0].data = listaAgrupada.map(d => d[campo]); 
+      chart.update(); 
+  }
+  
   att(recChart,"veicRec"); att(expChart,"veicExp"); att(carretasChart,"carretas"); att(fardosChart,"fardosMov");
   att(tonsChart,"tonsRec"); att(paletesChart,"paletesRet"); att(fardosRetChart,"fardosRet"); att(prensaChart,"prensa");
-  function soma(c){return filtrado.reduce((t,d)=>t+d[c],0);}
-  totalVeicRec.innerText=soma("veicRec").toLocaleString("pt-BR");
-  totalVeicExp.innerText=soma("veicExp").toLocaleString("pt-BR");
-  totalCarretas.innerText=soma("carretas").toLocaleString("pt-BR");
-  totalFardos.innerText=soma("fardosMov").toLocaleString("pt-BR");
-  totalTons.innerText=soma("tonsRec").toLocaleString("pt-BR");
-  totalPaletes.innerText=soma("paletesRet").toLocaleString("pt-BR");
-  totalFardosRet.innerText=soma("fardosRet").toLocaleString("pt-BR");
-  totalPrensa.innerText=soma("prensa").toLocaleString("pt-BR");
+  
+  function soma(c){ return filtrado.reduce((t,d) => t + d[c], 0); }
+  
+  document.getElementById("totalVeicRec").innerText = soma("veicRec").toLocaleString("pt-BR");
+  document.getElementById("totalVeicExp").innerText = soma("veicExp").toLocaleString("pt-BR");
+  document.getElementById("totalCarretas").innerText = soma("carretas").toLocaleString("pt-BR");
+  document.getElementById("totalFardos").innerText = soma("fardosMov").toLocaleString("pt-BR");
+  document.getElementById("totalTons").innerText = soma("tonsRec").toLocaleString("pt-BR");
+  document.getElementById("totalPaletes").innerText = soma("paletesRet").toLocaleString("pt-BR");
+  document.getElementById("totalFardosRet").innerText = soma("fardosRet").toLocaleString("pt-BR");
+  document.getElementById("totalPrensa").innerText = soma("prensa").toLocaleString("pt-BR");
+  
+  // Atualizar badge de informação
+  let periodoTxt = "📊 Exibindo ";
+  if(di && df) periodoTxt += `de ${formatarDataBR(di)} até ${formatarDataBR(df)}`;
+  else periodoTxt += "todos os dados";
+  document.getElementById("infoPeriodo").innerText = periodoTxt;
 }
 
 function tirarPrintDashboard(){
-  const dashboardElement = document.getElementById('dashboard');
-  html2canvas(dashboardElement, {
-    backgroundColor: '#f3f4f6',
-    scale: 2,
-    logging: false,
-    useCORS: true
-  }).then(canvas => {
-    const link = document.createElement('a');
-    const data = new Date();
-    const dataFormatada = data.toLocaleDateString('pt-BR').replace(/\//g, '-');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `Dashboard_${dataFormatada}.png`;
-    link.click();
-    alert('Print do dashboard capturado e baixado com sucesso!');
-  }).catch(err => {
-    alert('Erro ao capturar print do dashboard: ' + err);
-  });
+    const dashboardElement = document.getElementById('dashboard');
+    html2canvas(dashboardElement, {
+        scale: 2,
+        backgroundColor: "#f3f4f6",
+        logging: false,
+        useCORS: true
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `Dashboard_DPW_Cachoeiro_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
 }
 
-function exportarExcelMes(){
-  try {
-    const agora = new Date();
-    const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
-    const anoAtual = agora.getFullYear();
-    const prefixoMes = anoAtual + '-' + mesAtual;
-    
-    const dadosMes = dados.filter(d => d.data && d.data.startsWith(prefixoMes));
-    
-    if(dadosMes.length === 0){
-      alert('Nenhum dado encontrado para o mês atual (' + mesAtual + '/' + anoAtual + ')');
-      return;
+function exportarExcelMes() {
+    if (dados.length === 0) {
+        alert("Não há dados para exportar.");
+        return;
     }
     
-    // Criar CSV em vez de XLSX
-    let csv = 'Data\tTurno\tVeículos Recebidos\tVeículos Expedidos\tCarreta de Bobina\tFardos\tToneladas\tPaletes\tFardos Retrabalhados\tPrensa\n';
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Data;Turno;Veic Rec;Veic Exp;Carretas;Fardos;Tons;Paletes;Fardos Ret;Prensa\n";
     
-    dadosMes.forEach(registro => {
-      csv += `${registro.data || ''}\t${registro.turno || ''}\t${registro.veicRec || 0}\t${registro.veicExp || 0}\t${registro.carretas || 0}\t${registro.fardosMov || 0}\t${registro.tonsRec || 0}\t${registro.paletesRet || 0}\t${registro.fardosRet || 0}\t${registro.prensa || 0}\n`;
+    dados.forEach(d => {
+        let row = [
+            formatarDataBR(d.data),
+            d.turno,
+            d.veicRec,
+            d.veicExp,
+            d.carretas,
+            d.fardosMov,
+            d.tonsRec,
+            d.paletesRet,
+            d.fardosRet,
+            d.prensa
+        ].join(";");
+        csvContent += row + "\n";
     });
     
-    // Converter CSV para XLSX usando blob
-    const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    const nomeArquivo = 'Dashboard_' + mesAtual + '_' + anoAtual + '.csv';
-    link.setAttribute('href', url);
-    link.setAttribute('download', nomeArquivo);
-    link.style.visibility = 'hidden';
-    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Relatorio_DPW_Cachoeiro_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    alert('Arquivo exportado com sucesso: ' + nomeArquivo + '\n\nNota: O arquivo foi exportado em formato CSV. Você pode abri-lo no Excel normalmente.');
-  } catch(erro) {
-    console.error('Erro ao exportar:', erro);
-    alert('Erro ao exportar: ' + erro.message);
-  }
-}
-
-atualizar();
-</script>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { 
-  getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
-  deleteDoc, doc, getDocs, where 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAAjwidHLuh8aTZsFPmOXoqpbD12pTTElI",
-  authDomain: "dashboard-turnos.firebaseapp.com",
-  projectId: "dashboard-turnos",
-  storageBucket: "dashboard-turnos.firebasestorage.app",
-  messagingSenderId: "902554933795",
-  appId: "1:902554933795:web:bf86abf00ed58d569aaf96",
-  measurementId: "G-R0N3S5T6GD"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const turnosRef = collection(db, "lancamentos");
-
-window.salvarTurno = async function(dados){
-  await addDoc(turnosRef, {
-    ...dados,
-    criadoEm: new Date()
-  });
-}
-
-// Atualização automática
-const q = query(turnosRef, orderBy("criadoEm", "desc"));
-onSnapshot(q,(snapshot)=>{
-  dados=[];
-  snapshot.forEach(docItem =>
-    dados.push({id:docItem.id, ...docItem.data()})
-  );
-  atualizar();
-});
-
-// 🔥 FUNÇÃO DE APAGAR (CORRIGIDA E ATUALIZADA)
-window.apagarPorDataETurno = async function(){
-  try {
-    let senha = prompt("Digite a senha para apagar:");
-    if(senha !== senhaSistema){
-      alert("Senha incorreta!");
-      return;
-    }
-
-    let dataParaApagar = document.getElementById("data").value;
-    let turnoParaApagar = document.getElementById("turno").value;
-
-    if(!dataParaApagar){
-      alert("Selecione a data antes de apagar.");
-      return;
-    }
-
-    if(!confirm(`Confirma exclusão da data ${dataParaApagar} - Turno ${turnoParaApagar}?`)){
-      return;
-    }
-
-    const qDelete = query(
-      turnosRef,
-      where("data", "==", dataParaApagar),
-      where("turno", "==", turnoParaApagar)
-    );
-
-    const snapshot = await getDocs(qDelete);
-
-    if(snapshot.empty){
-      alert("Nenhum registro encontrado para essa data e turno.");
-      return;
-    }
-
-    const deletePromises = [];
-    snapshot.forEach((docSnapshot)=>{
-      deletePromises.push(
-        deleteDoc(doc(db,"lancamentos",docSnapshot.id))
-      );
-    });
-
-    await Promise.all(deletePromises);
-    alert("Registro(s) apagado(s) com sucesso!");
-    
-    // Atualiza o dashboard imediatamente
-    setTimeout(() => { window.location.reload(); }, 1000);
-
-  } catch(erro) {
-    console.error("Erro ao apagar:", erro);
-    alert("Erro ao apagar: " + erro.message);
-  }
 }
 </script>
 
