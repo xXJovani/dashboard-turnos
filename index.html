@@ -133,11 +133,11 @@ button{padding:6px 12px; border:none; background:#111827; color:#fff; cursor:poi
 <div class="campo"><label>🏭 Prensa</label><input type="number" id="prensa"></div>
 </div>
 
-<!-- Seção: Dados de Recursos Humanos (Apenas para exportação) -->
+<!-- Seção: Dados de Recursos Humanos -->
 <div class="section-divider"></div>
 <div class="form-grid">
 <div class="campo"><label>👥 HC (Headcount)</label><input type="number" id="hc" placeholder="Ex: 45"></div>
-<div class="campo"><label>📋 Absenteísmo (%)</label><input type="number" id="absenteismo" placeholder="Ex: 5.5" step="0.1"></div>
+<div class="campo"><label>❌ Faltas</label><input type="number" id="faltas" placeholder="Ex: 3"></div>
 </div>
 
 <div class="btn-group">
@@ -181,6 +181,12 @@ function trocarAba(id, botao){
 function filtrarTurno(t){ filtroTurno=t; atualizar(); }
 
 async function adicionar(){
+  let hc = +document.getElementById("hc").value||0;
+  let faltas = +document.getElementById("faltas").value||0;
+  
+  // Calcular absenteismo automaticamente: (faltas / HC) * 100
+  let absenteismo = hc > 0 ? ((faltas / hc) * 100).toFixed(2) : 0;
+  
   let r = {
     data: document.getElementById("data").value,
     turno: document.getElementById("turno").value,
@@ -192,8 +198,9 @@ async function adicionar(){
     paletesRet: +document.getElementById("paletesRet").value||0,
     fardosRet: +document.getElementById("fardosRet").value||0,
     prensa: +document.getElementById("prensa").value||0,
-    hc: +document.getElementById("hc").value||0,
-    absenteismo: +document.getElementById("absenteismo").value||0
+    hc: hc,
+    faltas: faltas,
+    absenteismo: parseFloat(absenteismo)
   };
   if(!r.data){ alert("Preencha a data"); return; }
   
@@ -370,7 +377,7 @@ function exportarExcelMes() {
     // CSV com todas as colunas incluindo HC e Absenteísmo - com BOM UTF-8 para Excel
     let csv = '\uFEFFData;Turno;Veic Rec;Veic Exp;Carretas;Fardos;Tons;Paletes;Fardos Ret;Prensa;HC;Absenteísmo (%)\n';
     dadosMes.forEach(d => {
-        // Adicionar valores de HC e Absenteísmo, usando 0 se não existirem
+        // Usar o absenteísmo já calculado automaticamente
         const hc = d.hc || 0;
         const absenteismo = d.absenteismo || 0;
         csv += `${formatarDataBR(d.data)};${d.turno};${d.veicRec};${d.veicExp};${d.carretas};${d.fardosMov};${d.tonsRec};${d.paletesRet};${d.fardosRet};${d.prensa};${hc};${absenteismo}\n`;
